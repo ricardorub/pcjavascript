@@ -1,0 +1,77 @@
+/* Estilos generales */
+.container {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 300px;
+  margin: 0 auto; /* Center the container */
+}
+
+/* Títulos */
+h2 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+h3 {
+  color: #555;
+  margin-top: 20px;
+  margin-bottom: 5px;
+}
+
+/* Formulario */
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+input {
+  padding: 8px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100%; /* Changed from fixed width to 100% for responsiveness */
+}
+
+input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.register-btn {
+  padding: 10px;
+  background-color: #dc3545; /* Rojo oscuro */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.register-btn:hover {
+  background-color: #c82333; /* Sombra más oscura al hover */
+}
+
+/* Respuesta del servidor */
+#response-container {
+  margin-top: 20px;
+}
+
+#response-output {
+  background-color: #f9f9f9;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  color: blue; /* Change text color to blue */
+}
