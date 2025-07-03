@@ -1,6 +1,6 @@
 import express from 'express'; // o const express = require('express');
 import cors from 'cors';
-import db from './servicios/conectaDB';
+import db from './servicios/conectaDB.js';
 
 const app = express();
 const PORT = 3001;
