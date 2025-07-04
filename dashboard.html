@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictor de Demanda - FastFood</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #ff6b6b;
+            --secondary-color: #4ecdc4;
+            --dark-color: #292f36;
+            --light-color: #f7fff7;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .sidebar {
+            background-color: var(--dark-color);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            padding-top: 20px;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 5px;
+            border-radius: 5px;
+            padding: 10px 15px;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-card .label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .bg-primary-light {
+            background-color: rgba(78, 205, 196, 0.1);
+        }
+        
+        .bg-warning-light {
+            background-color: rgba(255, 193, 7, 0.1);
+        }
+        
+        .bg-danger-light {
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+        
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table thead {
+            background-color: var(--dark-color);
+            color: white;
+        }
+        
+        .badge-soft-primary {
+            background-color: rgba(78, 205, 196, 0.2);
+            color: var(--secondary-color);
+        }
+        
+        .badge-soft-warning {
+            background-color: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+        
+        .badge-soft-danger {
+            background-color: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+        
+        .weather-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .date-picker-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar col-md-3 col-lg-2 d-md-block">
+        <div class="text-center mb-4">
+            <h4>FastFood Analytics</h4>
+            <hr style="border-color: rgba(255,255,255,0.1);">
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="#dashboard" data-bs-toggle="tab">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#historial" data-bs-toggle="tab">
+                    <i class="fas fa-history"></i> Historial Ventas
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#inventario" data-bs-toggle="tab">
+                    <i class="fas fa-boxes"></i> Gestión Inventario
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#prediccion" data-bs-toggle="tab">
+                    <i class="fas fa-chart-line"></i> Predicción Demanda
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#configuracion" data-bs-toggle="tab">
+                    <i class="fas fa-cog"></i> Configuración
+                </a>
+            </li>
+        </ul>
+        <div class="mt-auto p-3 text-center" style="position: absolute; bottom: 0; width: 100%;">
+            <small class="text-muted">Versión 1.0.0</small>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Dashboard Predictivo</h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Dashboard Tab -->
+            <div class="tab-pane fade show active" id="dashboard">
+                <!-- Stats Row -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card stat-card bg-primary-light">
+                            <div class="card-body">
+                                <div class="value">S/ 12,458</div>
+                                <div class="label">Ventas promedio diarias</div>
+                                <small class="text-success"><i class="fas fa-arrow-up"></i> 5.2% vs semana pasada</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card bg-warning-light">
+                            <div class="card-body">
+                                <div class="value">S/ 3,210</div>
+                                <div class="label">Desperdicio semanal</div>
+                                <small class="text-danger"><i class="fas fa-arrow-down"></i> 2.1% vs semana pasada</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card bg-danger-light">
+                            <div class="card-body">
+                                <div class="value">87%</div>
+                                <div class="label">Precisión predicción</div>
+                                <small class="text-success"><i class="fas fa-arrow-up"></i> 3.5% vs mes pasado</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card" style="background-color: rgba(108, 117, 125, 0.1);">
+                            <div class="card-body">
+                                <div class="value">24°C</div>
+                                <div class="label">Temperatura actual</div>
+                                <small><i class="fas fa-cloud-sun weather-icon"></i> Parcialmente nublado</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Charts Row -->
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>Demanda vs Inventario (Últimos 30 días)</span>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Todos los productos
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                        <li><a class="dropdown-item" href="#">Hamburguesas</a></li>
+                                        <li><a class="dropdown-item" href="#">Pollo</a></li>
+                                        <li><a class="dropdown-item" href="#">Bebidas</a></li>
+                                        <li><a class="dropdown-item" href="#">Postres</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="demandInventoryChart" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                Productos con mayor desperdicio
+                            </div>
+                            <div class="card-body">
+                                <canvas id="wasteChart" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prediction and Calendar Row -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                Predicción para mañana
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <strong>Pronóstico del tiempo:</strong> Soleado, 26°C (Aumenta ventas de bebidas en 15%)
+                                </div>
+                                <div class="alert alert-warning">
+                                    <strong>Día feriado:</strong> No (Patrón de ventas normal)
+                                </div>
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>Demanda esperada</th>
+                                            <th>Recomendación</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Hamburguesa Clásica</td>
+                                            <td>142 unidades</td>
+                                            <td><span class="badge bg-success">Preparar 150</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Pollo Broaster</td>
+                                            <td>98 unidades</td>
+                                            <td><span class="badge bg-warning">Preparar 105</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Gaseosas 500ml</td>
+                                            <td>210 unidades</td>
+                                            <td><span class="badge bg-danger">Preparar 230</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Ensalada César</td>
+                                            <td>45 unidades</td>
+                                            <td><span class="badge bg-success">Preparar 50</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <button class="btn btn-primary mt-2">
+                                    <i class="fas fa-check-circle"></i> Aplicar recomendaciones
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>Calendario de eventos</span>
+                                <button class="btn btn-sm btn-outline-primary">Añadir evento</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="date-picker-container mb-3">
+                                    <input type="date" class="form-control" id="calendarDate">
+                                </div>
+                                <div class="list-group">
+                                    <a href="#" class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h5 class="mb-1">Feriado: Día del Trabajo</h5>
+                                            <small class="text-muted">1 Mayo</small>
+                                        </div>
+                                        <p class="mb-1">Aumento esperado de ventas en 25%</p>
+                                        <small class="text-muted">Impacto alto en inventario</small>
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h5 class="mb-1">Pronóstico de lluvia</h5>
+                                            <small class="text-muted">15 Mayo</small>
+                                        </div>
+                                        <p class="mb-1">Reducción esperada de ventas en 10%</p>
+                                        <small class="text-muted">Impacto medio en inventario</small>
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h5 class="mb-1">Evento local: Feria gastronómica</h5>
+                                            <small class="text-muted">22 Mayo</small>
+                                        </div>
+                                        <p class="mb-1">Reducción esperada de ventas en 15%</p>
+                                        <small class="text-muted">Impacto alto en inventario</small>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historial Tab -->
+            <div class="tab-pane fade" id="historial">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>Historial de Ventas</span>
+                                <div>
+                                    <div class="input-group">
+                                        <input type="date" class="form-control" id="startDate">
+                                        <span class="input-group-text">a</span>
+                                        <input type="date" class="form-control" id="endDate">
+                                        <button class="btn btn-primary">Filtrar</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="productFilter">Filtrar por producto:</label>
+                                            <select id="productFilter" class="form-select">
+                                                <option>Todos los productos</option>
+                                                <option>Hamburguesas</option>
+                                                <option>Pollo</option>
+                                                <option>Bebidas</option>
+                                                <option>Postres</option>
+                                                <option>Acompañamientos</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="weatherFilter">Filtrar por clima:</label>
+                                            <select id="weatherFilter" class="form-select">
+                                                <option>Todos los climas</option>
+                                                <option>Soleado</option>
+                                                <option>Lluvioso</option>
+                                                <option>Nublado</option>
+                                                <option>Feriado</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <canvas id="salesHistoryChart" height="100"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                Correlación clima vs ventas
+                            </div>
+                            <div class="card-body">
+                                <canvas id="weatherCorrelationChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                Ventas por día de la semana
+                            </div>
+                            <div class="card-body">
+                                <canvas id="dayOfWeekChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventario Tab -->
+            <div class="tab-pane fade" id="inventario">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>Estado actual del inventario</span>
+                                <button class="btn btn-sm btn-primary">
+                                    <i class="fas fa-plus"></i> Añadir producto
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Producto</th>
+                                                <th>Stock actual</th>
+                                                <th>Ventas promedio</th>
+                                                <th>Días restantes</th>
+                                                <th>Estado</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Hamburguesa Clásica</td>
+                                                <td>120</td>
+                                                <td>45/día</td>
+                                                <td>2.7</td>
+                                                <td><span class="badge bg-warning">Reabastecer pronto</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Pollo Broaster</td>
+                                                <td>85</td>
+                                                <td>32/día</td>
+                                                <td>2.7</td>
+                                                <td><span class="badge bg-success">Óptimo</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Gaseosas 500ml</td>
+                                                <td>210</td>
+                                                <td>75/día</td>
+                                                <td>2.8</td>
+                                                <td><span class="badge bg-success">Óptimo</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Papas fritas</td>
+                                                <td>15</td>
+                                                <td>40/día</td>
+                                                <td>0.4</td>
+                                                <td><span class="badge bg-danger">Urgente</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Ensalada César</td>
+                                                <td>28</td>
+                                                <td>12/día</td>
+                                                <td>2.3</td>
+                                                <td><span class="badge bg-success">Óptimo</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                Inventario vs Rotación
+                            </div>
+                            <div class="card-body">
+                                <canvas id="inventoryTurnoverChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                Historial de desperdicio
+                            </div>
+                            <div class="card-body">
+                                <canvas id="wasteHistoryChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Predicción Tab -->
+            <div class="tab-pane fade" id="prediccion">
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                Modelo Predictivo
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="predictionProduct">Producto:</label>
+                                            <select id="predictionProduct" class="form-select">
+                                                <option>Hamburguesa Clásica</option>
+                                                <option>Pollo Broaster</option>
+                                                <option>Gaseosas 500ml</option>
+                                                <option>Papas fritas</option>
+                                                <option>Ensalada César</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="predictionDate">Fecha:</label>
+                                            <input type="date" class="form-control" id="predictionDate">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info">
+                                    <strong>Variables consideradas:</strong> Historial de ventas, condiciones climáticas, día de la semana, feriados, eventos locales, tendencias estacionales.
+                                </div>
+                                <canvas id="predictionChart" height="200"></canvas>
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Demanda esperada</h5>
+                                                <p class="display-4">142</p>
+                                                <p class="card-text">unidades</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Recomendación inventario</h5>
+                                                <p class="display-4">150</p>
+                                                <p class="card-text">unidades (5.6% buffer)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                Factores de influencia
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <h6>Clima esperado</h6>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-sun weather-icon text-warning me-3"></i>
+                                        <div>
+                                            <strong>Soleado, 26°C</strong><br>
+                                            <small>Aumenta ventas en 15%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>Día de la semana</h6>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-calendar-day weather-icon text-primary me-3"></i>
+                                        <div>
+                                            <strong>Viernes</strong><br>
+                                            <small>Aumenta ventas en 20%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>Feriado</h6>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-calendar-check weather-icon text-danger me-3"></i>
+                                        <div>
+                                            <strong>No</strong><br>
+                                            <small>Patrón de ventas normal</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>Eventos locales</h6>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-calendar-alt weather-icon text-success me-3"></i>
+                                        <div>
+                                            <strong>Concierto cercano</strong><br>
+                                            <small>Aumenta ventas en 10%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr>
+                                <h5>Precisión del modelo</h5>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 87%" aria-valuenow="87" aria-valuemin="0" aria-valuemax="100">87%</div>
+                                </div>
+                                <small class="text-muted">Basado en datos históricos de los últimos 6 meses</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                Recomendaciones de compra
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Insumo</th>
+                                            <th>Stock actual</th>
+                                            <th>Consumo promedio</th>
+                                            <th>Proveedor</th>
+                                            <th>Último precio</th>
+                                            <th>Recomendación</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Pan hamburguesa</td>
+                                            <td>80 unidades</td>
+                                            <td>45/día</td>
+                                            <td>Panadería Delicia</td>
+                                            <td>S/ 0.50</td>
+                                            <td>Ordenar 150 unidades</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-success">Confirmar</button>
+                                                <button class="btn btn-sm btn-outline-secondary">Ajustar</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Pechuga de pollo</td>
+                                            <td>12 kg</td>
+                                            <td>8 kg/día</td>
+                                            <td>Avícola San Fernando</td>
+                                            <td>S/ 12.00/kg</td>
+                                            <td>Ordenar 25 kg</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-success">Confirmar</button>
+                                                <button class="btn btn-sm btn-outline-secondary">Ajustar</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Papas para freír</td>
+                                            <td>5 kg</td>
+                                            <td>10 kg/día</td>
+                                            <td>Agroindustria Andina</td>
+                                            <td>S/ 4.50/kg</td>
+                                            <td>Ordenar 30 kg</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-success">Confirmar</button>
+                                                <button class="btn btn-sm btn-outline-secondary">Ajustar</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Gaseosas 500ml</td>
+                                            <td>12 cajas</td>
+                                            <td>8 cajas/día</td>
+                                            <td>Coca-Cola Perú</td>
+                                            <td>S/ 18.00/caja</td>
+                                            <td>Ordenar 20 cajas</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-success">Confirmar</button>
+                                                <button class="btn btn-sm btn-outline-secondary">Ajustar</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <button class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i> Enviar todos los pedidos
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuración Tab -->
+            <div class="tab-pane fade" id="configuracion">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                Configuración del modelo
+                            </div>
+                            <div class="card-body">
+                                <form>
+                                    <div class="mb-3">
+                                        <label for="modelType" class="form-label">Tipo de modelo</label>
+                                        <select class="form-select" id="modelType">
+                                            <option selected>Regresión lineal multivariada</option>
+                                            <option>Redes neuronales</option>
+                                            <option>Random Forest</option>
+                                            <option>SARIMA</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="dataRange" class="form-label">Rango de datos históricos</label>
+                                        <select class="form-select" id="dataRange">
+                                            <option selected>Últimos 6 meses</option>
+                                            <option>Últimos 3 meses</option>
+                                            <option>Último año</option>
+                                            <option>Últimos 2 años</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Factores a considerar</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="" id="weatherFactor" checked>
+                                            <label class="form-check-label" for="weatherFactor">
+                                                Condiciones climáticas
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="" id="holidayFactor" checked>
+                                            <label class="form-check-label" for="holidayFactor">
+                                                Días feriados
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="" id="dayOfWeekFactor" checked>
+                                            <label class="form-check-label" for="dayOfWeekFactor">
+                                                Día de la semana
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="" id="localEventsFactor">
+                                            <label class="form-check-label" for="localEventsFactor">
+                                                Eventos locales
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="" id="seasonalFactor" checked>
+                                            <label class="form-check-label" for="seasonalFactor">
+                                                Tendencias estacionales
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="bufferPercentage" class="form-label">Porcentaje de buffer</label>
+                                        <input type="range" class="form-range" min="0" max="20" step="1" id="bufferPercentage" value="5">
+                                        <div class="d-flex justify-content-between">
+                                            <small>0%</small>
+                                            <small>5%</small>
+                                            <small>10%</small>
+                                            <small>15%</small>
+                                            <small>20%</small>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Guardar configuración</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                Integraciones
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <h5>API del Servicio Meteorológico</h5>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text">URL</span>
+                                        <input type="text" class="form-control" value="https://api.weather.com/v1/">
+                                    </div>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text">API Key</span>
+                                        <input type="password" class="form-control" value="••••••••••••">
+                                    </div>
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="weatherApiActive" checked>
+                                        <label class="form-check-label" for="weatherApiActive">Activo</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <h5>Calendario de Feriados</h5>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text">País</span>
+                                        <select class="form-select">
+                                            <option selected>Perú</option>
+                                            <option>Actualizar automáticamente</option>
+                                            <option>Manual</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <h5>Sistema de Inventario</h5>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text">Tipo</span>
+                                        <select class="form-select">
+                                            <option selected>Integración directa</option>
+                                            <option>Archivo CSV</option>
+                                            <option>API personalizada</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Probar conexiones</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript for Charts -->
+    <script>
+        // Demand vs Inventory Chart
+        const demandInventoryCtx = document.getElementById('demandInventoryChart').getContext('2d');
+        const demandInventoryChart = new Chart(demandInventoryCtx, {
+            type: 'line',
+            data: {
+                labels: ['1 May', '2 May', '3 May', '4 May', '5 May', '6 May', '7 May', '8 May', '9 May', '10 May', '11 May', '12 May', '13 May', '14 May', '15 May', '16 May', '17 May', '18 May', '19 May', '20 May', '21 May', '22 May', '23 May', '24 May', '25 May', '26 May', '27 May', '28 May', '29 May', '30 May'],
+                datasets: [
+                    {
+                        label: 'Demanda real',
+                        data: [120, 115, 125, 130, 140, 150, 145, 135, 125, 130, 140, 145, 150, 155, 145, 140, 135, 130, 125, 130, 140, 150, 160, 155, 150, 145, 140, 135, 130, 140],
+                        borderColor: '#4ecdc4',
+                        backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Inventario preparado',
+                        data: [130, 125, 135, 140, 150, 160, 155, 145, 135, 140, 150, 155, 160, 165, 155, 150, 145, 140, 135, 140, 150, 160, 170, 165, 160, 155, 150, 145, 140, 150],
+                        borderColor: '#ff6b6b',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Desperdicio',
+                        data: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+                        borderColor: '#ffc107',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Unidades'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Waste Chart
+        const wasteCtx = document.getElementById('wasteChart').getContext('2d');
+        const wasteChart = new Chart(wasteCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Hamburguesas', 'Pollo', 'Bebidas', 'Postres', 'Acompañamientos'],
+                datasets: [{
+                    data: [35, 25, 15, 15, 10],
+                    backgroundColor: [
+                        '#ff6b6b',
+                        '#4ecdc4',
+                        '#ffc107',
+                        '#a0d9b4',
+                        '#6c757d'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Distribución del desperdicio'
+                    }
+                }
+            }
+        });
+
+        // Sales History Chart
+        const salesHistoryCtx = document.getElementById('salesHistoryChart').getContext('2d');
+        const salesHistoryChart = new Chart(salesHistoryCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                datasets: [
+                    {
+                        label: 'Hamburguesas',
+                        data: [1200, 1300, 1400, 1500, 1600, 1700, 1800, 1750, 1650, 1550, 1450, 1350],
+                        backgroundColor: '#ff6b6b'
+                    },
+                    {
+                        label: 'Pollo',
+                        data: [800, 850, 900, 950, 1000, 1050, 1100, 1150, 1100, 1050, 1000, 950],
+                        backgroundColor: '#4ecdc4'
+                    },
+                    {
+                        label: 'Bebidas',
+                        data: [1500, 1600, 1700, 1800, 1900, 2000, 2100, 2050, 1950, 1850, 1750, 1650],
+                        backgroundColor: '#ffc107'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Ventas mensuales por categoría'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Unidades vendidas'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Weather Correlation Chart
+        const weatherCorrelationCtx = document.getElementById('weatherCorrelationChart').getContext('2d');
+        const weatherCorrelationChart = new Chart(weatherCorrelationCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Soleado', 'Lluvioso', 'Nublado', 'Frío', 'Feriado'],
+                datasets: [
+                    {
+                        label: 'Hamburguesas',
+                        data: [80, 60, 70, 75, 120],
+                        backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                        borderColor: '#ff6b6b',
+                        pointBackgroundColor: '#ff6b6b'
+                    },
+                    {
+                        label: 'Bebidas',
+                        data: [120, 80, 90, 85, 110],
+                        backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                        borderColor: '#ffc107',
+                        pointBackgroundColor: '#ffc107'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Impacto del clima en ventas'
+                    }
+                },
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true
+                        },
+                        suggestedMin: 50,
+                        suggestedMax: 150
+                    }
+                }
+            }
+        });
+
+        // Day of Week Chart
+        const dayOfWeekCtx = document.getElementById('dayOfWeekChart').getContext('2d');
+        const dayOfWeekChart = new Chart(dayOfWeekCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+                datasets: [{
+                    label: 'Ventas promedio',
+                    data: [120, 130, 125, 140, 160, 180, 150],
+                    backgroundColor: [
+                        '#4ecdc4',
+                        '#4ecdc4',
+                        '#4ecdc4',
+                        '#4ecdc4',
+                        '#ff6b6b',
+                        '#ff6b6b',
+                        '#4ecdc4'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Ventas por día de la semana'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Unidades vendidas'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Inventory Turnover Chart
+        const inventoryTurnoverCtx = document.getElementById('inventoryTurnoverChart').getContext('2d');
+        const inventoryTurnoverChart = new Chart(inventoryTurnoverCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: 'Hamburguesas',
+                        data: [
+                            {x: 45, y: 120},
+                            {x: 50, y: 130},
+                            {x: 55, y: 140}
+                        ],
+                        backgroundColor: '#ff6b6b'
+                    },
+                    {
+                        label: 'Pollo',
+                        data: [
+                            {x: 32, y: 85},
+                            {x: 35, y: 90},
+                            {x: 38, y: 95}
+                        ],
+                        backgroundColor: '#4ecdc4'
+                    },
+                    {
+                        label: 'Bebidas',
+                        data: [
+                            {x: 75, y: 210},
+                            {x: 80, y: 220},
+                            {x: 85, y: 230}
+                        ],
+                        backgroundColor: '#ffc107'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Inventario vs Rotación'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y} unidades (${context.parsed.x}/día)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Ventas promedio diarias'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Nivel de inventario'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Waste History Chart
+        const wasteHistoryCtx = document.getElementById('wasteHistoryChart').getContext('2d');
+        const wasteHistoryChart = new Chart(wasteHistoryCtx, {
+            type: 'line',
+            data: {
+                labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                datasets: [{
+                    label: 'Desperdicio mensual (S/)',
+                    data: [3200, 3100, 3050, 3000, 2950, 2900, 2850, 2800, 2750, 2700, 2650, 2600],
+                    borderColor: '#ff6b6b',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Reducción de desperdicio'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Valor del desperdicio (S/)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Prediction Chart
+        const predicitonCtx = document.getElementById('predictionChart').getContext('2d');
+        const predicitonChart = new Chart(predicitonCtx, {
+            type: 'line',
+            data: {
+                labels: ['8:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
+                datasets: [
+                    {
+                        label: 'Demanda esperada',
+                        data: [15, 25, 45, 35, 25, 40, 30, 15],
+                        borderColor: '#4ecdc4',
+                        backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Demanda real (día anterior)',
+                        data: [12, 22, 42, 32, 22, 38, 28, 12],
+                        borderColor: '#ff6b6b',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        tension: 0.3,
+                        fill: false,
+                        borderDash: [5, 5]
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Patrón de demanda horaria'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Unidades vendidas'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
