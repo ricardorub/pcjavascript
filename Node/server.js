@@ -1,14 +1,13 @@
-
-
 //const app = express();
 const PORT = 3000;
 
 import express from 'express'; // o const express = require('express');
 import cors from 'cors';
-import db from './servicios/conectaDB';
+import db from './servicios/conectaDB.js';
 
 const app = express();
 app.use(cors());
+app.use(express.json()); // Add this line to parse JSON bodies
 
 // Org. Jorge Chicana
 
@@ -20,11 +19,13 @@ app.post('/contacto', async (req, res) => {
   }
 
   try {
-    const [result] = await db.execute(
+    const result = await db.execute(
       'INSERT INTO contacto (name, email) VALUES (?, ?)', [name, email]
     );
+    console.log('Insert result:', result);
+    const insertId = result[0].insertId;
     res.status(201).json({
-      id: result.insertId,
+      id: insertId,
       name,
       email,
       creadoEn: new Date()
@@ -34,7 +35,6 @@ app.post('/contacto', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
-
 
 app.get('/contacto', async (req, res) => {
   try {
