@@ -1,16 +1,19 @@
+
+
+//const app = express();
+const PORT = 3000;
+
 import express from 'express'; // o const express = require('express');
 import cors from 'cors';
 import db from './servicios/conectaDB';
 
 const app = express();
-const PORT = 3001;
-
 app.use(cors());
 
 // Org. Jorge Chicana
 
 // POST - Agregar nuevo contacto
-app.post("/contacto", async (req, res) => {
+app.post('/contacto', async (req, res) => {
   const { name, email } = req.body;
   if (!name || !email) {
     return res.status(400).json({ error: 'Faltan campos requeridos' });
@@ -20,7 +23,6 @@ app.post("/contacto", async (req, res) => {
     const [result] = await db.execute(
       'INSERT INTO contacto (name, email) VALUES (?, ?)', [name, email]
     );
-
     res.status(201).json({
       id: result.insertId,
       name,
@@ -33,9 +35,11 @@ app.post("/contacto", async (req, res) => {
   }
 });
 
+
 app.get('/contacto', async (req, res) => {
   try {
     const [rows] = await db.execute('SELECT * FROM contacto');
+    // Org. Jorge Chicana
     res.json(rows);
   } catch (err) {
     console.error('Error al consultar:', err);
@@ -44,5 +48,5 @@ app.get('/contacto', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Backend con MySQL2 corriendo en http://localhost:${PORT}`);
+  console.log(`Backend con MySQL corriendo en http://localhost:${PORT}`);
 });
